@@ -1,63 +1,73 @@
-from gazpacho import get, Soup
-import pandas as pd
-from itertools import product
-from tqdm import tqdm
 import time
 import random
 import sqlite3
+from gazpacho import get, Soup
+import pandas as pd
+from rich import print
+from tqdm import tqdm
 
-base = "https://www.thescore.com"
 
-def get_boxscore_urls(date):
-    if isinstance(date, pd.Timestamp):
-        date = date.strftime("%Y-%m-%d")
-    url = f"{base}/nba/events/date/{date}"
-    html = get(url)
-    soup = Soup(html)
-    games = soup.find("div", {'class': "Layout__content"}).find('a', mode='all')
-    urls = [base + game.attrs['href'] for game in games]
-    return urls
+def nfl_week(date=None):
+    if not date:
+        date = pd.Timestamp("now")
+    day_of_year = pd.Timestamp(date).dayofyear
+    start_day = pd.Timestamp("2020-09-08").dayofyear
+    week = (day_of_year - start_day) // 7
+    return week
 
-def parse_stat_row(row):
-    meta = row.find("div", {"class": "rosterCell"}).text
-    name, position = meta.replace(')', '').split(' (')
-    stats = row.find("div", {"class": "statCell"})
-    minutes = int(stats[0].text)
-    points = int(stats[1].text)
-    return name, position, minutes, points
 
-def get_game_stats(url):
-    url += "/stats"
-    html = get(url)
-    soup = Soup(html)
-    rows = soup.find("div", {"class": "BoxScore__statLine"})
-    data = [parse_stat_row(row) for row in rows]
-    return data
+def parse_tr(tr):
+    last, first = tr.find("td", {"class": "playerLink"}).find('a').text.split(", ")
+    data = tr.find("td", {"nowrap": ""})
+    position = data[3].find("font").text
+    yards_pass = float(data[4].text.replace("*", ""))
+    yards_rush = float(data[6].text.replace("*", ""))
+    yards_receiving = float(data[9].text.replace("*", ""))
+    return {
+        "name": f"{first} {last}",
+        "position": position,
+        "yards": yards_pass + yards_rush + yards_receiving
+    }
 
-def get_games(date):
-    urls = get_boxscore_urls(date)
-    df = pd.DataFrame()
-    for url in urls:
-        stats = get_game_stats(url)
-        one = pd.DataFrame(stats, columns=["name", "position", "minutes", "points"])
-        one['date'] = date
-        df = df.append(one)
+
+def parse_all_trs(trs):
+    players = []
+    for tr in trs:
+        try:
+            player = parse_tr(tr)
+            if player['position'] in ["QB", "WR", "RB", "TE"]:
+                players.append(player)
+        except AttributeError:
+            pass
+    return players
+
+
+def scrape_data_for(*, date=None, week=None):
+    if (date and week) or (not date and not week):
+        raise Exception("Choose one of date= or week=")
+    if date:
+        week = nfl_week(date)
+    url = "https://www.fantasysharks.com/apps/bert/stats/points.php"
+    segment = week + 691
+    params = {"League": -1, "Position": 99, "scoring": 13, "Segment": segment}
+    soup = Soup.get(url, params)
+    trs = soup.find("table", {"id": "toolData"}).find("tr")
+    data = parse_all_trs(trs)
+    df = pd.DataFrame(data)
+    df['week'] = week
+    df['fetched_at'] = pd.Timestamp("now")
     return df
 
+
 if __name__ == "__main__":
-    con = sqlite3.connect("data/basketball.db")
+    con = sqlite3.connect("data/football.db")
 
-    dates = pd.date_range(start="2020-07-30", end="today")
     df = pd.DataFrame()
-    for date in tqdm(dates):
-        try:
-            games = get_games(date)
-            df = df.append(games)
-            time.sleep(random.uniform(1, 10)/10)
-        except TypeError:
-            pass
-
+    for week in tqdm(range(1, 8+1)):
+        idf = scrape_data_for(week=week)
+        df = df.append(idf)
+        time.sleep(random.uniform(1, 10)/10)
     df = df.reset_index(drop=True)
 
-    df.to_csv("data/basketball.csv", index=False)
-    df.to_sql(name="players", con=con, if_exists="replace", index=False)
+    df.to_csv("data/football.csv", index=False)
+    df.to_sql(name="yards", con=con, if_exists="replace", index=False)
