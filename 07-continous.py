@@ -7,7 +7,7 @@ from sklearn.impute import SimpleImputer
 from sklearn_pandas import DataFrameMapper
 from sklearn.pipeline import make_pipeline
 
-df = pd.read_csv('data/football.csv', parse_dates=[4])
+df = pd.read_csv('/home/christiangrech/Documents/GitHub/DE4DS/data/football.csv', parse_dates=[4])
 df = df.sort_values(['name', 'week']).reset_index(drop=True)
 df['yards_1'] = df.groupby('name')['yards'].shift(1)
 df['yards_2'] = df.groupby('name')['yards'].shift(2)
@@ -36,7 +36,7 @@ pipe = make_pipeline(mapper, model)
 pipe.fit(X_train, y_train)
 score = round(pipe.score(X_train, y_train), 2)
 
-with open("pickles/pipe.pkl", "wb") as f:
+with open("/home/christiangrech/Documents/GitHub/DE4DS/pickles/pipe.pkl", "wb") as f:
     pickle.dump(pipe, f)
 
 print("Success!")

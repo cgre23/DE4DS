@@ -18,9 +18,15 @@ pip install fire
 pip install rollbar
 pip install python-dotenv
 pip install apache-airflow
+pip install gazpacho, rich
 ```
 
+set Airflow directory: export AIRFLOW_HOME=`pwd`/airflow
+airflow initdb
+airflow test football fetch "2020-11-12"
+airflow webserver -p 8080
+go to localhost:8080
+airflow scheduler
 
-
-
-
+ALTERNATIVE for scheduling using hickory
+pip install hickory

@@ -2,7 +2,7 @@ import pickle
 import sqlite3
 import pandas as pd
 
-con = sqlite3.connect("data/football.db")
+con = sqlite3.connect("/home/christiangrech/Documents/GitHub/DE4DS/data/football.db")
 
 name = "Aaron Rodgers"
 
@@ -23,7 +23,7 @@ X_new = pd.DataFrame({
     'yards_2': [player.yards[1]]
 })
 
-with open("pickles/pipe.pkl", "rb") as f:
+with open("/home/christiangrech/Documents/GitHub/DE4DS/pickles/pipe.pkl", "rb") as f:
     pipe = pickle.load(f)
 
 pipe.predict(X_new)[0]

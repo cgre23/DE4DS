@@ -17,12 +17,12 @@ load_dotenv(find_dotenv())
 
 # load the key-value secret
 ROLLBAR = os.getenv("ROLLBAR")
-rollbar.init(ROLLBAR)
+rollbar.init(ROLLBAR, 'production')
 
-df = pd.read_csv('data/football.csv')
+df = pd.read_csv('/home/christiangrech/Documents/GitHub/DE4DS/data/football.csv')
 df = df.sort_values(['name', 'week']).reset_index(drop=True)
-df['yards_1'] = df.groupby('name')['yards'].shift(1)
 df['yards_2'] = df.groupby('name')['yards'].shift(2)
+df['yards_1'] = df.groupby('name')['yards'].shift(1)
 df = df.dropna(subset=["yards_1", "yards_2"])
 
 target = 'yards'
@@ -40,7 +40,7 @@ mapper = DataFrameMapper([
     (['position'], [SimpleImputer(strategy="most_frequent"), LabelBinarizer()]),
     (['yards_1'], [SimpleImputer(), StandardScaler()]),
     (['yards_2'], [SimpleImputer(), StandardScaler()]),
-], df_out=True)
+    ], df_out=True)
 
 model = LinearRegression()
 
@@ -55,5 +55,5 @@ if score < threshold:
         f"score ({score}) is below acceptable threshold ({threshold})"
     )
 
-with open("pickles/pipe.pkl", "wb") as f:
+with open("/home/christiangrech/Documents/GitHub/DE4DS/pickles/pipe.pkl", "wb") as f:
     pickle.dump(pipe, f)

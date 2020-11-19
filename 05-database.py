@@ -4,9 +4,9 @@ import pandas as pd
 
 from fire import Fire
 
-con = sqlite3.connect("data/football.db")
+con = sqlite3.connect("/home/christiangrech/Documents/GitHub/DE4DS/data/football.db")
 
-with open("pickles/pipe.pkl", "rb") as f:
+with open("/home/christiangrech/Documents/GitHub/DE4DS/pickles/pipe.pkl", "rb") as f:
     pipe = pickle.load(f)
 
 def fetch_player_data(name):
